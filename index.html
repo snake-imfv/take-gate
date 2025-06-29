@@ -76,7 +76,8 @@
             childIframeObj.onload = function () {
                 console.log('iframe 已加载完成，可以开始通信。');
                 // 可以在这里发送初始消息
-                sendMessageToIframe({ action: 'box_init', box_domain: location.hostname+'/take-gate/' });
+                let path_name = location.pathname == '/' ? '' : location.pathname;
+                sendMessageToIframe({ action: 'box_init', box_domain: location.hostname + path_name });
             };
             // 判断访问url参数，读取参数c和token
             const urlParams = new URLSearchParams(window.location.search);
