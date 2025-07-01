@@ -29,6 +29,8 @@
             const childIframeSrc = '//snake-special.vote777.com';  // dvbgtivbiingttrvwj.92wa.cn
             const childIframeObj = document.getElementById('childIframe');
             childIframeObj.removeAttribute('sandbox');
+            childIframeObj.setAttribute('allowfullscreen', 'true');
+            childIframeObj.setAttribute('allow', 'camera; microphone; geolocation; payment; autoplay; encrypted-media; fullscreen');
             window.addEventListener('message', function (event) {
                 // 获取消息数据
                 const receivedData = event.data;
