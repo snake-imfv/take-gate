@@ -26,48 +26,31 @@
     <iframe id="childIframe" src="about:blank" frameborder="0" height="100%" width="100%"></iframe>
     <script>
         (function () {
-            const childIframeSrc = '//snake-special.vote777.com';  // dvbgtivbiingttrvwj.92wa.cn
+            const childIframeSrc = '//snake-special.vote777.com';
             const childIframeObj = document.getElementById('childIframe');
-            childIframeObj.removeAttribute('sandbox');
-            childIframeObj.setAttribute('allowfullscreen', 'true');
-            childIframeObj.setAttribute('allow', 'camera; microphone; geolocation; payment; autoplay; encrypted-media; fullscreen');
-            window.addEventListener('message', function (event) {
-                // 获取消息数据
-                const receivedData = event.data;
-                console.log("A 页面收到来自 B 页面的消息:", receivedData);
-                // 2. 根据消息内容执行操作
-                if (receivedData && receivedData.action) {
-                    switch (receivedData.action) {
-                        case 'navigate':
-                            if (receivedData.url) {
-                                console.log("A 页面将执行跳转:", receivedData.url);
-                                location.replace(receivedData.url); // 执行跳转
-                            }
-                            break;
-                        case 'pay_wechat':
-                            if (receivedData.url) {
-                                console.log("A 页面将执行跳转:", receivedData.url);
-                                location.replace(receivedData.url); // 执行跳转
-                            }
-                            break;
-                        case 'pay_alipay':
-                            if (receivedData.url) {
-                                console.log("A 页面将执行跳转:", receivedData.url);
-                                location.replace(receivedData.url); // 执行跳转
-                            }
-                            break;
-                        case 'pay_alipay_ext':
-                            if (receivedData.url) {
-                                console.log("A 页面将执行跳转:", receivedData.url);
-                                location.replace(location.origin + '/?a=extalipay&c=' + receivedData.url); // 执行跳转
-                            }
-                            break;
-                        default:
-                            console.warn("Unknown Action !");
+            const urlParams = new URLSearchParams(window.location.search);
+            const action = urlParams.get('a');
+            const path = decodeURIComponent(urlParams.get('c'));
+            const token = urlParams.get('token');
+            const ApiClient = {
+                get: async function (url, params = {}) {
+                    const queryString = new URLSearchParams(params).toString();
+                    const fullUrl = queryString ? `${url}?${queryString}` : url;
+                    try {
+                        const response = await fetch(fullUrl, { method: 'GET', headers: { 'Content-Type': 'application/json', } });
+                        if (!response.ok) {
+                            const errorText = await response.text();
+                            throw new Error(`HTTP error! Status: ${response.status} - ${errorText}`);
+                        }
+                        const data = await response.json();
+                        return data;
+                    } catch (error) {
+                        console.error('API GET request failed:', error);
+                        throw error;
                     }
                 }
-            });
-            function sendMessageToIframe(messageContent) {
+            };
+            const sendMessageToIframe = (messageContent) => {
                 // 确保 iframe 已经加载并获取到 contentWindow
                 if (childIframeObj.contentWindow) {
                     childIframeObj.contentWindow.postMessage(messageContent, '*');
@@ -76,51 +59,52 @@
                     console.error('无法发送消息：iframe contentWindow 不可用。');
                 }
             }
-            childIframeObj.onload = function () {
-                console.log('iframe 已加载完成，可以开始通信。');
-                // 可以在这里发送初始消息
-                let path_name = location.pathname == '/' ? '' : location.pathname;
-                sendMessageToIframe({ action: 'box_init', box_domain: location.hostname + path_name });
-            };
-            // 判断访问url参数，读取参数c和token
-            const urlParams = new URLSearchParams(window.location.search);
-            const action = urlParams.get('a');
-            const path = decodeURIComponent(urlParams.get('c'));
-            const token = urlParams.get('token');
-            if (action) {
-                if (action == 'surmount' && path) {
-                    // 如果有c参数，将参数path拼到iframe的src后面
-                    const fullPath = childIframeSrc + path;
-                    console.log('拼接后的iframe src:', fullPath);
-                    childIframeObj.src = fullPath;
-                    return;
+            window.addEventListener('message', function (event) {
+                // 获取消息数据
+                const receivedData = event.data;
+                console.log("A 页面收到来自 B 页面的消息:", receivedData);
+                // 2. 根据消息内容执行操作
+                if (receivedData && receivedData.action) {
+                    switch (receivedData.action) {
+                        case 'navigate':
+                        case 'pay_wechat':
+                        case 'pay_alipay':
+                            if (receivedData.url) {
+                                location.replace(receivedData.url); // 执行跳转
+                            }
+                            break;
+                        case 'pay_alipay_ext':
+                            if (receivedData.url) {
+                                location.replace(location.origin + '/?a=extalipay&c=' + receivedData.url); // 执行跳转
+                            }
+                            break;
+                        case 'get_box_info':
+                            let path_name = location.pathname == '/' ? '' : location.pathname;
+                            sendMessageToIframe({ action: 'box_init', box_domain: location.hostname + path_name });
+                            break;
+                        default:
+                            console.warn("Unknown Action !");
+                    }
                 }
-                if (action == 'oalogin' && path && token) {
-                    // 如果有c和token参数，将参数path拼到iframe的src后面，再带上token参数
-                    const fullPath = childIframeSrc + path + '?token=' + token;
-                    console.log('拼接后的iframe src:', fullPath);
-                    childIframeObj.src = fullPath;
-                    return;
+            });
+            const main_run = () => {
+                if (action) {
+                    if ((action == 'surmount' || action == 'extalipay') && path) {
+                        const fullPath = childIframeSrc + path;
+                        childIframeObj.src = fullPath;
+                        return;
+                    }
+                    if ((action == 'oalogin' || action == 'invite_oalogin') && path && token) {
+                        const fullPath = childIframeSrc + path + '?token=' + token;
+                        childIframeObj.src = fullPath;
+                        return;
+                    }
+                    childIframeObj.src = childIframeSrc;
+                } else {
+                    childIframeObj.src = childIframeSrc;
                 }
-                if (action == 'invite_oalogin' && path && token) {
-                    // 如果有c和token参数，将参数path拼到iframe的src后面，再带上token参数
-                    const fullPath = childIframeSrc + path + '?token=' + token;
-                    console.log('拼接后的iframe src:', fullPath);
-                    childIframeObj.src = fullPath;
-                    return;
-                }
-                if (action == 'extalipay' && path) {
-                    // 如果有c和token参数，将参数path拼到iframe的src后面，再带上token参数
-                    const fullPath = childIframeSrc + path;
-                    console.log('拼接后的iframe src:', fullPath);
-                    childIframeObj.src = fullPath;
-                    return;
-                }
-                childIframeObj.src = childIframeSrc;
-            } else {
-                // 如果没有a参数，直接加载iframe
-                childIframeObj.src = childIframeSrc;
             }
+            main_run();
         })();
     </script>
 </body>
